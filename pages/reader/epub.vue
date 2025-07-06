@@ -283,6 +283,7 @@ if (!hasLoggedIn.value) {
   await navigateTo(localeRoute({ name: 'account' }))
 }
 
+const isAtEndOfSection = ref(false)
 const { t: $t } = useI18n()
 const nftStore = useNFTStore()
 const {
@@ -490,6 +491,8 @@ async function loadEPub() {
     height: '100%',
     allowScriptedContent: true,
     spread: 'none',
+    flow: 'paginated',
+    manager: 'default',
   })
   const bodyCSS: Record<string, string> = {
     color: '#333',
@@ -566,6 +569,7 @@ async function loadEPub() {
   })
 
   rendition.value.on('relocated', (location: Location) => {
+    isAtEndOfSection.value = location.atEnd
     currentPageEndCfi.value = location.end.cfi
     const href = location.start.href
     if (navItems.value.some(item => item.href === href)) {
@@ -582,7 +586,16 @@ function setActiveNavItemHref(href: string) {
 }
 
 function nextPage() {
-  rendition.value?.next()
+  if (!isAtEndOfSection.value) {
+    rendition.value?.next()
+  }
+  else {
+    const currentIndex = currentSectionIndex.value
+    const nextSection = navItems.value[currentIndex + 1]
+    if (nextSection) {
+      rendition.value?.display(nextSection.href)
+    }
+  }
 }
 
 function prevPage() {
@@ -630,8 +643,4 @@ onKeyStroke('Space', () => isShiftPressed.value ? prevPage() : nextPage())
 
 <style>
 /* NOTE: In Safari/Brave Browser, .epub-view could be zero width */
-.epub-view,
-.epub-view > iframe {
-  width: 100% !important
-}
 </style>
